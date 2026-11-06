@@ -110,27 +110,27 @@ Object.assign(obj.entries, {
         profile_banner: true
     }),
     feature_discovery_popup_config: JSON.stringify({
-        tag: "LOCKET GOLD ĐHT",
+        tag: "LOCKET GOLD ",
         tag_gradient: true,
         tag_style: "gold_gradient",
-        title: "Lên LocketGold rồi đó 🤫 😎",
+        title: "Unlock LocketGold Premium ",
         feature_set: [
             {
-                title: "LIÊN HỆ ZL:0848130763 ✨",
-                body: "BOTtele:@shoppremium_vn2026_bot 💛",
-                imageURL: "https://i.ibb.co/9mzHK9ZL/tranquangthanh.png"
+                title: "Tài khoản đã được Unlock Premium by Văn Trường",
+                body: "Flex với bạn bè ngay nào!🔥",
+                imageURL: "https://i.ibb.co/HpbLbmvM/IMG-9027.jpg"
             }
         ],
         primary_button_title: "Xong",
         campaign: "locket_gold_welcome_v3",
-        start_at: "2020-01-01T00:00:00",
+        start_at: "2007-11-09T00:00:00",
         end_at: "2099-12-31T23:59:59",
         use_local_time_zone: true
     }),
     android_subscribe_gold_button_enabled: "false",
     profile_badge_visible: "true",
     lunar_new_year_app_icon_enabled: "true",
-    settings_tiktok_url: "https://www.tiktok.com/@tqthh0511?_r=1&_t=ZS-9B3m8unRCqK"
+    settings_tiktok_url: "https://www.tiktok.com/@v.truongg09127?_r=1&_t=ZS-9BBNNnCuv0E"
 });
 
 // ============================================================
@@ -377,10 +377,10 @@ Object.assign(obj.entries, {
 
     widget_frame_event: JSON.stringify({
         uid: "shinchan_2026",
-        url: "https://i.ibb.co/HfbV9TRw/anh-7-red-madrid-1.png",
+        url: "https://i.ibb.co/NdH7YKmY/IMG-9066.jpg",
         use_local_time_zone: true,
         placement: "below",
-        start_at: "2020-01-01T00:00:00",
+        start_at: "2007-11-09T00:00:00",
         end_at: "2099-12-31T23:59:59"
     }),
 
@@ -527,7 +527,7 @@ Object.assign(obj.entries, {
     ]),
     overlay_items: JSON.stringify([
         {
-                "section": "🎨 Hoangtien07",
+                "section": "🎨 Basic",
                 "items": [
                         {
                                 "overlay_id": "caption:standard",
@@ -624,7 +624,7 @@ Object.assign(obj.entries, {
                 ]
         },
         {
-                "section": "🎨 Tình yêu & Cơm chó 💕",
+                "section": "🎨 Tình yêu 💕",
                 "items": [
                         {
                                 "overlay_id": "caption:em_nho_anhh",
@@ -1425,7 +1425,7 @@ Object.assign(obj.entries, {
                 ]
         },
         {
-                "section": "🎨 Decorative by quangthanh06",
+                "section": "🎨 Decorative by Văn Trường",
                 "items": [
                         {
                                 "overlay_id": "caption:quangthanh06",
@@ -1439,7 +1439,7 @@ Object.assign(obj.entries, {
                                                 ]
                                         },
                                         "max_lines": 1,
-                                        "text": "💻 quangthanh06",
+                                        "text": "💻 By Văn Trường",
                                         "text_color": "#183153",
                                         "type": "static_content"
                                 }
