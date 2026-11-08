@@ -17,14 +17,11 @@
  */
 
 // 1. Thay bằng domain Cloudflare Worker của riêng bạn:
-const MY_WORKER_HOST = "https://locket-pb.ten-cua-ban.workers.dev";
+const MY_WORKER_HOST = "https://weathered-wave-12cc.noobnopro2007.workers.dev";
 
 // 2. Điền Username hoặc UID của bạn và hội bạn thân muốn hiển thị tim vàng:
 const MY_VIP_FRIENDS = [
-  "username_cua_ban",
-  "username_ban_than_1",
-  "username_ban_than_2"
-];
+  "ttruonngg"];
 
 // 3. Đặt thành true nếu muốn TẤT CẢ bạn bè trong danh sách đều hiện Gold:
 const UNLOCK_ALL_FRIENDS = false;
