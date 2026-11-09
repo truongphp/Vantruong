@@ -1,11 +1,12 @@
 // ============================================================================
-// 📸 LOCKET PHOTOBOOTH 4-SHOT ENGINE V5 - BẢN CÁ NHÂN HOÁ VĂN TRƯỜNG
-// Hỗ trợ ĐỒNG THỜI cả 2 chiều trên Shadowrocket:
-//   1. Chiều type=http-request: Bắt request chụp ảnh, gọi Cloudflare Worker,
-//      lưu kết quả tạm thời vào $persistentStore và trả Mock HTTP 200 OK ngay lập tức.
-//   2. Chiều type=http-response (Dự phòng khi một số bản Shadowrocket bỏ qua
-//      mock response ở http-request và đẩy request lên server thật của Locket gây lỗi 400):
-//      Tự động chặn phản hồi lỗi từ server Locket và ghi đè bằng HTTP 200 OK chuẩn!
+// 📸 LOCKET PHOTOBOOTH 4-SHOT ENGINE V7 - BẢN CÁ NHÂN HOÁ VĂN TRƯỜNG
+// Cơ chế 2 pha (Two-Phase Handshake) chống lỗi HTTP/2 Stream trên Shadowrocket:
+//   - Pha 1 (http-request): Đọc dữ liệu ảnh gốc từ $request.body, gửi sang
+//     Cloudflare Worker để lưu/ghép ảnh, ghi kết quả vào $persistentStore,
+//     rồi cho phép request đi tiếp với body gọn nhẹ "{}" để không làm đứt luồng HTTP/2.
+//   - Pha 2 (http-response): Bắt phản hồi từ server Locket, giữ nguyên bộ khung
+//     headers chuẩn của HTTP/2 (giống hệt cơ chế của locketremotevip1.js) và
+//     ghi đè status: 200 cùng JSON chứa link ảnh đã ghép về cho Locket!
 // ============================================================================
 
 (function () {
@@ -69,19 +70,20 @@
     };
   }
 
-  function buildResponseObject(outputUrl, extra = {}) {
-    return {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-store"
-      },
-      body: JSON.stringify(buildPayload(outputUrl, extra))
-    };
+  function buildCleanResponseHeaders() {
+    let respHeaders = Object.assign({}, (typeof $response !== "undefined" && $response && $response.headers) || {});
+    for (let k of Object.keys(respHeaders)) {
+      if (["content-encoding", "content-length", "transfer-encoding"].includes(k.toLowerCase())) {
+        delete respHeaders[k];
+      }
+    }
+    respHeaders["Content-Type"] = "application/json; charset=utf-8";
+    respHeaders["Access-Control-Allow-Origin"] = "*";
+    respHeaders["Cache-Control"] = "no-store";
+    return respHeaders;
   }
 
-  function executePhotoboothShot(isResponsePhase) {
+  function callWorkerForShot(callback) {
     let rawBody = ($request && $request.body) || "{}";
     let bodyObj = {};
     try {
@@ -122,18 +124,6 @@
 
     const fallbackStepUrl = `${WORKER_ORIGIN}/assets/frames/pb_step${currentStep < 4 ? currentStep : 1}.jpg`;
 
-    const finish = (finalUrl) => {
-      storeWrite("LOCKET_PB_LAST_OUT_URL", finalUrl);
-      storeWrite("LOCKET_PB_LAST_OUT_TS", String(Date.now()));
-      storeWrite("LOCKET_PB_LAST_OUT_STEP", String(currentStep));
-      const respObj = buildResponseObject(finalUrl, { step: currentStep });
-      if (isResponsePhase) {
-        return $done(respObj);
-      } else {
-        return $done({ response: respObj });
-      }
-    };
-
     if (typeof $httpClient !== "undefined") {
       $httpClient.post({
         url: WORKER_ENDPOINT,
@@ -158,24 +148,32 @@
             }
             const rawOut = (parsed && parsed.result && parsed.result.outputUrl) || parsed.outputUrl || "";
             const outUrl = normalizeOutputUrl(rawOut, fallbackStepUrl);
-            return finish(outUrl);
+            storeWrite("LOCKET_PB_LAST_OUT_URL", outUrl);
+            storeWrite("LOCKET_PB_LAST_OUT_TS", String(Date.now()));
+            storeWrite("LOCKET_PB_LAST_OUT_STEP", String(currentStep));
+            return callback(outUrl, currentStep);
           } catch (e) {}
         }
-        return finish(fallbackStepUrl);
+        storeWrite("LOCKET_PB_LAST_OUT_URL", fallbackStepUrl);
+        storeWrite("LOCKET_PB_LAST_OUT_TS", String(Date.now()));
+        storeWrite("LOCKET_PB_LAST_OUT_STEP", String(currentStep));
+        return callback(fallbackStepUrl, currentStep);
       });
     } else {
-      return finish(fallbackStepUrl);
+      storeWrite("LOCKET_PB_LAST_OUT_URL", fallbackStepUrl);
+      storeWrite("LOCKET_PB_LAST_OUT_TS", String(Date.now()));
+      storeWrite("LOCKET_PB_LAST_OUT_STEP", String(currentStep));
+      return callback(fallbackStepUrl, currentStep);
     }
   }
 
-  // NẾU ĐƯỢC GỌI Ở CHIỀU HTTP-REQUEST (Hoặc khi gọi vào deleteHeader)
+  // PHA 1: CHIỀU HTTP-REQUEST
   if (typeof $response === "undefined") {
     try {
       if (typeof $request === "undefined" || !$request) {
         return $done({});
       }
       const reqUrl = String($request.url || "");
-      // Nếu người dùng gắn nhầm vào rule deleteHeader của Firebase/RevenueCat
       if (reqUrl.includes("firebaseremoteconfig") || reqUrl.includes("revenuecat")) {
         let headers = Object.assign({}, $request.headers || {});
         for (let k of Object.keys(headers)) {
@@ -185,26 +183,47 @@
         }
         return $done({ headers: headers });
       }
-      return executePhotoboothShot(false);
-    } catch (e) {
-      return $done({
-        response: buildResponseObject(`${WORKER_ORIGIN}/assets/frames/pb_step1.jpg`)
+
+      // Gọi Worker để tải ảnh & ghép khung, lưu kết quả vào bộ nhớ đệm rồi cho phép
+      // request đi tiếp sang Pha 2 (http-response) để trả kết quả chuẩn HTTP/2!
+      callWorkerForShot(function (outUrl, stepNum) {
+        return $done({ body: JSON.stringify({ data: { ping: 1 } }) });
       });
+    } catch (e) {
+      return $done({});
     }
     return;
   }
 
-  // NẾU ĐƯỢC GỌI Ở CHIỀU HTTP-RESPONSE (Ghi đè mọi lỗi 400/404/500 từ server Locket)
+  // PHA 2: CHIỀU HTTP-RESPONSE (Ghi đè phản hồi chuẩn 100% như locketremotevip1.js)
   try {
     let lastUrl = storeRead("LOCKET_PB_LAST_OUT_URL");
     let lastTs = Number(storeRead("LOCKET_PB_LAST_OUT_TS") || "0");
     let lastStep = Number(storeRead("LOCKET_PB_LAST_OUT_STEP") || "1");
-    if (lastUrl && (Date.now() - lastTs < 15000)) {
+
+    if (lastUrl && (Date.now() - lastTs < 25000)) {
       storeWrite("LOCKET_PB_LAST_OUT_TS", "0");
-      return $done(buildResponseObject(lastUrl, { step: lastStep }));
+      return $done({
+        status: 200,
+        headers: buildCleanResponseHeaders(),
+        body: JSON.stringify(buildPayload(lastUrl, { step: lastStep }))
+      });
     }
-    return executePhotoboothShot(true);
+
+    // Nếu người dùng chỉ bật rule http-response mà không bật http-request:
+    callWorkerForShot(function (outUrl, stepNum) {
+      storeWrite("LOCKET_PB_LAST_OUT_TS", "0");
+      return $done({
+        status: 200,
+        headers: buildCleanResponseHeaders(),
+        body: JSON.stringify(buildPayload(outUrl, { step: stepNum }))
+      });
+    });
   } catch (e) {
-    return $done(buildResponseObject(`${WORKER_ORIGIN}/assets/frames/pb_step1.jpg`));
+    return $done({
+      status: 200,
+      headers: buildCleanResponseHeaders(),
+      body: JSON.stringify(buildPayload(`${WORKER_ORIGIN}/assets/frames/pb_step1.jpg`))
+    });
   }
 })();
