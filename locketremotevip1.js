@@ -534,14 +534,8 @@ var customPhotoboothFilters = [
         "name": "📸 2x2 Trời Sao Y2K (2 Trên 2 Dưới)",
         "prompt": "stk_pb_2x2_starry",
         "productUrl": null,
-        "colors": [
-            "#6366F1",
-            "#EC4899"
-        ],
-        "captureButtonColors": [
-            "#6366F1",
-            "#EC4899"
-        ],
+        "colors": ["#6366F1", "#EC4899"],
+        "captureButtonColors": ["#6366F1", "#EC4899"],
         "icon": {
             "url": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_fireworks.png",
             "iconUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_fireworks.png",
@@ -578,14 +572,8 @@ var customPhotoboothFilters = [
         "name": "🎞️ 4 Ảnh Dọc (Retro Phim Nhựa)",
         "prompt": "stk_pb_doc_kodak",
         "productUrl": null,
-        "colors": [
-            "#F59E0B",
-            "#EA580C"
-        ],
-        "captureButtonColors": [
-            "#F59E0B",
-            "#EA580C"
-        ],
+        "colors": ["#F59E0B", "#EA580C"],
+        "captureButtonColors": ["#F59E0B", "#EA580C"],
         "icon": {
             "url": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_golden_hour.png",
             "iconUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_golden_hour.png",
@@ -617,19 +605,51 @@ var customPhotoboothFilters = [
         "filterType": "normal"
     },
     {
+        "uid": "stk_pb_4x4_grid",
+        "id": "stk_pb_4x4_grid",
+        "name": "🔳 4x4 Photobooth (Lưới 16 Ô Cực Nghệ)",
+        "prompt": "stk_pb_4x4_grid",
+        "productUrl": null,
+        "colors": ["#06B6D4", "#3B82F6"],
+        "captureButtonColors": ["#06B6D4", "#3B82F6"],
+        "icon": {
+            "url": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_grid_4x4.png",
+            "iconUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_grid_4x4.png",
+            "remoteImage": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_grid_4x4.png",
+            "sfSymbol": "square.grid.4x3.fill",
+            "emoji": "🔳"
+        },
+        "textColor": "#FFFFFF",
+        "style": "cutout",
+        "overlay": true,
+        "overlayImageUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_grid_4x4.png",
+        "overlayImageURL": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_grid_4x4.png",
+        "imageUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_grid_4x4.png",
+        "iconUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_grid_4x4.png",
+        "referenceImages": [],
+        "requires_gold": false,
+        "requiresGold": false,
+        "is_gold": false,
+        "isGold": false,
+        "unlocked": true,
+        "is_unlocked": true,
+        "isUnlocked": true,
+        "free": true,
+        "allowsTryFilter": true,
+        "allows_try_filter": true,
+        "tryButtonEnabled": true,
+        "try_button_enabled": true,
+        "type": "normal",
+        "filterType": "normal"
+    },
+    {
         "uid": "stk_pb_2x2_luxury",
         "id": "stk_pb_2x2_luxury",
         "name": "👑 2x2 Quiet Luxury (2 Trên 2 Dưới)",
         "prompt": "stk_pb_2x2_luxury",
         "productUrl": null,
-        "colors": [
-            "#FFD700",
-            "#B45309"
-        ],
-        "captureButtonColors": [
-            "#FFD700",
-            "#B45309"
-        ],
+        "colors": ["#FFD700", "#B45309"],
+        "captureButtonColors": ["#FFD700", "#B45309"],
         "icon": {
             "url": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_new_year_2026.png",
             "iconUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_new_year_2026.png",
@@ -666,14 +686,8 @@ var customPhotoboothFilters = [
         "name": "🌙 4 Ảnh Dọc (Midnight Tarot)",
         "prompt": "stk_pb_doc_tarot",
         "productUrl": null,
-        "colors": [
-            "#A855F7",
-            "#FACC15"
-        ],
-        "captureButtonColors": [
-            "#A855F7",
-            "#FACC15"
-        ],
+        "colors": ["#A855F7", "#FACC15"],
+        "captureButtonColors": ["#A855F7", "#FACC15"],
         "icon": {
             "url": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_rose_flower.png",
             "iconUrl": "https://weathered-wave-12cc.noobnopro2007.workers.dev/assets/stickers/stk_rose_flower.png",
@@ -709,21 +723,24 @@ var customFilterGroups = [
     {
         "id": "group_photobooth_vibes",
         "title": {
-            "en": "Photobooth 2x2 & 4 Ảnh Dọc 📸",
-            "vi": "Photobooth 2x2 & 4 Ảnh Dọc 📸"
+            "en": "Photobooth 2x2, 1x4 & 4x4 📸",
+            "vi": "Photobooth 2x2, 1x4 & 4x4 📸"
         },
         "filterIds": [
             "stk_pb_2x2_starry",
             "stk_pb_doc_kodak",
+            "stk_pb_4x4_grid",
             "stk_pb_2x2_luxury",
             "stk_pb_doc_tarot"
         ],
         "filter_ids": [
             "stk_pb_2x2_starry",
             "stk_pb_doc_kodak",
+            "stk_pb_4x4_grid",
             "stk_pb_2x2_luxury",
             "stk_pb_doc_tarot"
         ],
+        "filters": customPhotoboothFilters,
         "requires_gold": false,
         "requiresGold": false,
         "is_gold": false,
@@ -737,6 +754,7 @@ var customFilterGroups = [
 var customPickerFilters = [
     "stk_pb_2x2_starry",
     "stk_pb_doc_kodak",
+    "stk_pb_4x4_grid",
     "stk_pb_2x2_luxury",
     "stk_pb_doc_tarot"
 ];
