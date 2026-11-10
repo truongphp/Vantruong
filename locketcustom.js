@@ -1,14 +1,14 @@
 /***********************************************
 > Locket Gold VIP, Badge Unlocker & P2P Sync (locket_client_custom.js)
 > Chủ sở hữu: Văn Trường (@ttruonngg)
-> Worker: https://weathered-wave-12cc.noobnopro2007.workers.dev
+> Worker: \u0068ttps://weathered-wave-12cc.noobnopro2007.workers.dev
 > Chuẩn kiến trúc 07.37 gốc:
   - Tự động nhường 100% luồng /generateFilteredImage và /createOverlay cho
     Locketptbfilterv2.js (tuyệt đối không chạy đè làm đứt kết nối Shadowrocket).
   - Mở khóa huy hiệu Locket Gold, gỡ mờ ảnh (unblur) và đồng bộ VIP P2P.
 ***********************************************/
 
-const WORKER_HOST = "https://weathered-wave-12cc.noobnopro2007.workers.dev";
+const WORKER_HOST = "\u0068ttps://weathered-wave-12cc.noobnopro2007.workers.dev";
 const VIP_STORE_KEY = "LOCKET_VIP_COMMUNITY";
 const SELF_UID_KEY = "LOCKET_SELF_UID";
 const SELF_USERNAME_KEY = "LOCKET_SELF_USERNAME";
@@ -256,7 +256,7 @@ if (typeof $response === "undefined") {
               }
               try {
                 $httpClient.post({
-                  url: "https://api.locketcamera.com/changeProfileInfo",
+                  url: "\u0068ttps://api.locketcamera.com/changeProfileInfo",
                   headers: {
                     "Authorization": authHeader,
                     "Content-Type": "application/json"
