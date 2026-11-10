@@ -222,8 +222,34 @@ if (typeof $response === "undefined") {
 else {
   const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
 
-  // Bảo vệ tuyệt đối kết quả trả về từ generateFilteredImage / createOverlay của Worker 22.50
+  // Bảo vệ tuyệt đối kết quả trả về từ generateFilteredImage / createOverlay (ưu tiên lấy kết quả từ V10 Store nếu có)
   if (reqUrl.includes("generateFilteredImage") || reqUrl.includes("createOverlay")) {
+    const v10Url = (typeof $persistentStore !== "undefined") ? ($persistentStore.read("LOCKET_PB_V10_OUT_URL") || "") : "";
+    const v10Ts = Number((typeof $persistentStore !== "undefined" && $persistentStore.read("LOCKET_PB_V10_OUT_TS")) || "0");
+    const v10Step = Number((typeof $persistentStore !== "undefined" && $persistentStore.read("LOCKET_PB_V10_OUT_STEP")) || "1");
+    if (v10Url && (Date.now() - v10Ts < 30000)) {
+      if (typeof $persistentStore !== "undefined") $persistentStore.write("0", "LOCKET_PB_V10_OUT_TS");
+      let respHeaders = Object.assign({}, ($response && $response.headers) || {});
+      for (let k of Object.keys(respHeaders)) {
+        if (["content-encoding", "content-length", "transfer-encoding"].includes(k.toLowerCase())) delete respHeaders[k];
+      }
+      respHeaders["Content-Type"] = "application/json; charset=utf-8";
+      respHeaders["Access-Control-Allow-Origin"] = "*";
+      $done({
+        status: 200,
+        headers: respHeaders,
+        body: JSON.stringify({
+          result: {
+            outputUrl: v10Url, output_url: v10Url, url: v10Url, imageUrl: v10Url, image_url: v10Url,
+            transformed_image_url: v10Url, status: 200,
+            data: { outputUrl: v10Url, output_url: v10Url, url: v10Url, imageUrl: v10Url, image_url: v10Url, photobooth_step: v10Step }
+          },
+          data: { outputUrl: v10Url, output_url: v10Url, url: v10Url, imageUrl: v10Url, image_url: v10Url },
+          outputUrl: v10Url, output_url: v10Url, url: v10Url, status: 200
+        })
+      });
+      return;
+    }
     let body = $response.body;
     if (body) {
       try {
