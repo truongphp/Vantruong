@@ -1,20 +1,11 @@
 /***********************************************
-> Locket AI Filter, 4-Shot Photobooth & Gold VIP Client
-> Phiên bản Đặc Biệt: Đón Sinh Nhật Văn Trường (09/11) 🎂
+> Locket Gold VIP, Badge Unlocker & P2P Sync (locket_client_custom.js)
+> Chủ sở hữu: Văn Trường (@ttruonngg)
 > Worker: https://weathered-wave-12cc.noobnopro2007.workers.dev
-> GitHub: https://github.com/truongphp/Vantruong
-> Đã fix khớp 100% với Clipboard 22.49 (Shadowrocket Config) & Clipboard 22.50 (Worker):
-  1. Chiều Request (http-request):
-     - Bắt cả /generateFilteredImage và /createOverlay, bẻ lái kèm toàn bộ body
-       về Worker https://weathered-wave-12cc.noobnopro2007.workers.dev.
-     - Bắt /changeProfileInfo trả về Mock 200 OK gắn huy hiệu locket_gold ngay lập tức.
-     - Xóa sạch các header ETag / If-None-Match chống lỗi 304 Not Modified.
-  2. Chiều Response (http-response):
-     - Tự động bỏ qua response của /generateFilteredImage và /createOverlay để bảo toàn
-       100% kết quả ảnh AI (Gemini + Cloudinary) và luồng 4 ảnh Photobooth từ Worker.
-     - Giải mã chính xác UID chủ máy từ Firebase JWT Header.
-     - Tự động đồng bộ P2P với /api/register-vip và /api/vip-users trên Worker Văn Trường.
-     - Mở khóa Gold, vương miện, gỡ mờ ảnh (unblur) và xóa mã lỗi 402/403.
+> Chuẩn kiến trúc 07.37 gốc:
+  - Tự động nhường 100% luồng /generateFilteredImage và /createOverlay cho
+    Locketptbfilterv2.js (tuyệt đối không chạy đè làm đứt kết nối Shadowrocket).
+  - Mở khóa huy hiệu Locket Gold, gỡ mờ ảnh (unblur) và đồng bộ VIP P2P.
 ***********************************************/
 
 const WORKER_HOST = "https://weathered-wave-12cc.noobnopro2007.workers.dev";
@@ -22,7 +13,6 @@ const VIP_STORE_KEY = "LOCKET_VIP_COMMUNITY";
 const SELF_UID_KEY = "LOCKET_SELF_UID";
 const SELF_USERNAME_KEY = "LOCKET_SELF_USERNAME";
 
-// Danh sách hạt giống VIP đồng bộ 100% với MEMORY_VIP_SET trong Worker 22.50 của Văn Trường
 const BASE_VIP_USERS = [
   "truongphp", "v.truongg09127", "vantruong", "ttruonngg",
   "mhhiep", "2c7dlquxuqulknrwgpcqsqlw0sk2", "th_quang08", "th_quang",
@@ -33,7 +23,7 @@ const BASE_VIP_USERS = [
   "j5n7ioiufeymskpmcohjjjswrxa2", "7ghwealmlhxvkdvhp11vwwwciie2",
   "hjmbhnrxstco62kjojgojtc8ddn2", "dualato", "g8mrjoobvcfgo6pomplyvmqfet92",
   "12tsoagygjyx6xdmvqj7d5phsv93", "6fbwotlsq5ojnd7azlrcuousv5k2",
-  "v6nunol4iiacnmfnrxsfoko5dxn2", "khoia", "zhuudjqjnatlsn350x4w0wnnnwn1",
+  "v6nunol4iiacnmfnrxsfoko5dxn2", "khoia", "zhuudjqjnatlsn350x4w0wnnnnn1",
   "ak24", "b09lwjxdn3ublwbgtjaqwwnvxcs1", "ak2703", "t5fvkfp994fywhgwfkwsikscleg1",
   "duyvinh09", "729ckhper7p0lnynwp0fsrtktng2", "4a5e1hpej5zgxeaii5z2kdbmolf2",
   "mpqza6lcmoxwtnwqn7jz2yi7vi22", "ghfpj4icughbjhtrqt8hvfqiwmg2",
@@ -61,10 +51,9 @@ const BASE_VIP_USERS = [
   "grtrogz4xcdhznd8kzdrkdl66md2", "bn_sii", "f7ugzfhyc7xrikjvee8wbrcmt0k1",
   "oahn2309", "fuokhow1rxuvugyb0bz7xl3wcku2", "mhhieuz",
   "igxfmpws63dt7zpaqp0irtruyj72", "canh.quang", "t9inecetx2dje9n36vvyb9xomxy2",
-  "kienviet"
+  "kienviet", "7tegglv8kah3bvapztlejemx", "7tegglv8kah3bvapztlejemxubr2"
 ];
 
-// Đặt thành true nếu muốn hiện tim vàng cho tất cả bạn bè:
 const UNLOCK_ALL_FRIENDS_DEFAULT = false;
 
 function applyGoldBadge(target) {
@@ -92,7 +81,6 @@ function applyGoldBadge(target) {
 
 function isNodeVip(target, vSet) {
   if (!target || typeof target !== "object") return false;
-
   const uid = String(
     target.uid || target.user_id || target.id || target.friend_uid || target.friend_id || target.friendId || target.userId || ""
   ).toLowerCase().trim();
@@ -154,43 +142,11 @@ function extractSelfUidFromHeaders(headers) {
   return null;
 }
 
-// =========================================================================
-// 1. CHIỀU REQUEST: Điều hướng Photobooth/AI sang Worker 22.50 & Mock Profile
-// =========================================================================
 if (typeof $response === "undefined") {
   const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
-  let headers = Object.assign({}, ($request && $request.headers) || {});
-
-  // 1A. Khi Locket gọi generateFilteredImage hoặc createOverlay -> Đẩy thẳng 1-Hop về Worker V9 (Không copy $request.body)
   if (reqUrl.includes("generateFilteredImage") || reqUrl.includes("createOverlay")) {
-    let lastTime = Number((typeof $persistentStore !== "undefined" && $persistentStore.read("LOCKET_PB_V9_LAST_TIME")) || "0");
-    let currentStep = Number((typeof $persistentStore !== "undefined" && $persistentStore.read("LOCKET_PB_V9_STEP")) || "0");
-    let sessionBatch = (typeof $persistentStore !== "undefined" && $persistentStore.read("LOCKET_PB_V9_BATCH")) || String(Date.now());
-    if ((Date.now() - lastTime > 300000) || currentStep >= 4 || currentStep < 0) {
-      currentStep = 0;
-      sessionBatch = String(Date.now());
-    }
-    currentStep += 1;
-    if (typeof $persistentStore !== "undefined") {
-      $persistentStore.write(String(Date.now()), "LOCKET_PB_V9_LAST_TIME");
-      $persistentStore.write(String(currentStep >= 4 ? 0 : currentStep), "LOCKET_PB_V9_STEP");
-      $persistentStore.write(sessionBatch, "LOCKET_PB_V9_BATCH");
-    }
-    const targetUrl = `${WORKER_HOST}/generateFilteredImage?step=${currentStep}&batch=${sessionBatch}&filter=stk_pb_2x2_shinchan`;
-    const workerHostOnly = WORKER_HOST.replace(/^https?:\/\//, "");
-    headers["Host"] = workerHostOnly;
-    headers["host"] = workerHostOnly;
-    headers["X-PB-Step"] = String(currentStep);
-    headers["X-PB-Batch"] = sessionBatch;
-    headers["X-PB-Filter"] = "stk_pb_2x2_shinchan";
-
-    $done({
-      url: targetUrl,
-      headers: headers
-    });
-  }
-  // 1B. Khi Locket gọi changeProfileInfo -> Phản hồi thành công huy hiệu Gold ngay tại chỗ
-  else if (reqUrl.includes("changeProfileInfo")) {
+    $done({});
+  } else if (reqUrl.includes("changeProfileInfo")) {
     $done({
       response: {
         status: 200,
@@ -204,9 +160,8 @@ if (typeof $response === "undefined") {
         })
       }
     });
-  }
-  // 1C. Các request khác -> Xóa sạch header cache gây lỗi 304 Not Modified
-  else {
+  } else {
+    let headers = Object.assign({}, ($request && $request.headers) || {});
     for (let k of Object.keys(headers)) {
       if (["if-none-match", "if-modified-since", "x-revenuecat-etag"].includes(k.toLowerCase())) {
         delete headers[k];
@@ -214,66 +169,10 @@ if (typeof $response === "undefined") {
     }
     $done({ headers: headers });
   }
-}
-
-// =========================================================================
-// 2. CHIỀU RESPONSE: Mở khóa Gold, Unblur & Đồng bộ VIP P2P với Worker 22.50
-// =========================================================================
-else {
+} else {
   const reqUrl = (typeof $request !== "undefined" && $request.url) ? $request.url : "";
-
-  // Bảo vệ tuyệt đối kết quả trả về từ generateFilteredImage / createOverlay (ưu tiên lấy kết quả từ V10 Store nếu có)
   if (reqUrl.includes("generateFilteredImage") || reqUrl.includes("createOverlay")) {
-    const v10Url = (typeof $persistentStore !== "undefined") ? ($persistentStore.read("LOCKET_PB_V10_OUT_URL") || "") : "";
-    const v10Ts = Number((typeof $persistentStore !== "undefined" && $persistentStore.read("LOCKET_PB_V10_OUT_TS")) || "0");
-    const v10Step = Number((typeof $persistentStore !== "undefined" && $persistentStore.read("LOCKET_PB_V10_OUT_STEP")) || "1");
-    if (v10Url && (Date.now() - v10Ts < 30000)) {
-      if (typeof $persistentStore !== "undefined") $persistentStore.write("0", "LOCKET_PB_V10_OUT_TS");
-      let respHeaders = Object.assign({}, ($response && $response.headers) || {});
-      for (let k of Object.keys(respHeaders)) {
-        if (["content-encoding", "content-length", "transfer-encoding"].includes(k.toLowerCase())) delete respHeaders[k];
-      }
-      respHeaders["Content-Type"] = "application/json; charset=utf-8";
-      respHeaders["Access-Control-Allow-Origin"] = "*";
-      $done({
-        status: 200,
-        headers: respHeaders,
-        body: JSON.stringify({
-          result: {
-            outputUrl: v10Url, output_url: v10Url, url: v10Url, imageUrl: v10Url, image_url: v10Url,
-            transformed_image_url: v10Url, status: 200,
-            data: { outputUrl: v10Url, output_url: v10Url, url: v10Url, imageUrl: v10Url, image_url: v10Url, photobooth_step: v10Step }
-          },
-          data: { outputUrl: v10Url, output_url: v10Url, url: v10Url, imageUrl: v10Url, image_url: v10Url },
-          outputUrl: v10Url, output_url: v10Url, url: v10Url, status: 200
-        })
-      });
-      return;
-    }
-    let body = $response.body;
-    if (body) {
-      try {
-        let resObj = JSON.parse(body);
-        delete resObj.error;
-        delete resObj.errors;
-        if (resObj.result) {
-          delete resObj.result.error;
-          delete resObj.result.errors;
-        }
-        $done({
-          status: 200,
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            "Access-Control-Allow-Origin": "*"
-          },
-          body: JSON.stringify(resObj)
-        });
-      } catch (e) {
-        $done({});
-      }
-    } else {
-      $done({});
-    }
+    $done({});
   } else {
     let body = $response.body;
     let status = $response.status || $response.statusCode || 200;
@@ -297,7 +196,6 @@ else {
     const myUname = (typeof $persistentStore !== "undefined") ? $persistentStore.read(SELF_USERNAME_KEY) : null;
     if (myUname) vipSet.add(String(myUname).toLowerCase().trim());
 
-    // Nạp thêm danh sách VIP đã đồng bộ từ Worker 22.50 trong bộ nhớ thiết bị
     if (typeof $persistentStore !== "undefined") {
       try {
         const rawVip = $persistentStore.read(VIP_STORE_KEY);
@@ -342,14 +240,12 @@ else {
           if (uid) vipSet.add(uid);
           if (username) vipSet.add(username);
 
-          // Tự động đăng ký tài khoản chủ máy lên Endpoint /api/register-vip của Worker 22.50
           if ((uid || username) && typeof $httpClient !== "undefined") {
             try {
               $httpClient.get(`${WORKER_HOST}/api/register-vip?uid=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`, function () {});
             } catch (e) {}
           }
 
-          // Tự động kích hoạt huy hiệu locket_gold trực tiếp lên api.locketcamera.com
           const authHeader = reqHeaders["authorization"] || reqHeaders["Authorization"];
           if (authHeader && typeof $httpClient !== "undefined") {
             const lastSyncTime = (typeof $persistentStore !== "undefined") ? $persistentStore.read("LOCKET_PROFILE_BADGE_SYNCED") : null;
@@ -388,7 +284,6 @@ else {
 
         function transformNode(node) {
           if (!node || typeof node !== "object") return;
-
           if (Array.isArray(node)) {
             for (let i = 0; i < node.length; i++) {
               transformNode(node[i]);
@@ -456,7 +351,6 @@ else {
       } catch (e) {}
     }
 
-    // Tự động tải ngầm danh sách VIP mới nhất từ Endpoint /api/vip-users của Worker 22.50
     if (typeof $httpClient !== "undefined") {
       try {
         $httpClient.get(`${WORKER_HOST}/api/vip-users`, function (err, resp, data) {
