@@ -1,7 +1,7 @@
 /***********************************************
 > Locket Photobooth Shinchan 4-Shot Filter Engine (Locketptbfilterv2.js)
 > Chủ sở hữu: Văn Trường (@ttruonngg)
-> Worker: https://weathered-wave-12cc.noobnopro2007.workers.dev
+> Worker: \u0068ttps://weathered-wave-12cc.noobnopro2007.workers.dev
 > Chuyên biệt 100% cho /generateFilteredImage và /createOverlay:
   1. Chiều Request (http-request):
      - Chuyển hướng kèm toàn bộ $request.body về Worker (giống hệt bản V12 đã gửi
@@ -13,7 +13,7 @@
 ***********************************************/
 
 (function () {
-  const WORKER_HOST = "https://weathered-wave-12cc.noobnopro2007.workers.dev";
+  const WORKER_HOST = "\u0068ttps://weathered-wave-12cc.noobnopro2007.workers.dev";
 
   function cleanResponseHeaders(rawHeaders) {
     let respHeaders = Object.assign({}, rawHeaders || {});
